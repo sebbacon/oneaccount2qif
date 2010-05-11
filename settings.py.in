@@ -1,0 +1,4 @@
+PASS = "yourpassword"
+NUM = "yourpassnumber"
+CODE = "yourglobalkeycode"
+STARTDATE = "01/10/2008"

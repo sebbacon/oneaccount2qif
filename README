@@ -1,0 +1,9 @@
+This is a script to scrape your one account data and convert it to QIF format, so you can actually do useful things with it.
+
+I've not bothered making it nice yet.
+
+Right now:
+
+ * Copy settings.py.in to settings.py and edit.
+ * Run ./oneaccount.py once to grab today's HTML 
+ * Run it again to dump QIF format to stdout.
