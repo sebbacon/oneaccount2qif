@@ -5,7 +5,25 @@ I've not bothered making it nice yet.
 Right now, to get started:
 
  * install pyquery and mechanise
+
  * Copy settings.py.in to settings.py and edit.
+
  * Run ./oneaccount.py to parse dates from settings.DEFAULT_START_DATE to today
+
+   * Subseqently, just running ./oneaccount.py should only download
+     subsequent transactions, though there may be some overlap that
+     you should merge during QIF import
+
  * The HTML scraped from the One Account is cached in the current directory
+
  * Have a look at ./oneaccount.py --help for some options
+
+
+TODO:
+
+ * Store historical data in a SQLLite database and ensure subsequent
+   scrapes only return new data
+ 
+ * HTML dumps to go in a temporary location and the software shouldn't
+   rely on them
+

@@ -3,6 +3,7 @@ from pyquery import PyQuery as pq
 from mechanize import Browser
 from datetime import datetime
 import os
+import glob
 
 from optparse import OptionParser
 from optparse import OptionValueError
@@ -188,7 +189,13 @@ if __name__ == "__main__":
     if not enddate:
         enddate = now
     if not startdate:
-        startdate = datetime.strptime(DEFAULT_STARTDATE, "%Y-%m-%d") 
+        files = glob.glob("./one-account-*.html")
+        if files:
+            files.sort()
+            latest = files[0]
+            startdate = datetime.strptime(latest, "./one-account-%Y-%m-%d.html") 
+        else:        
+            startdate = datetime.strptime(DEFAULT_STARTDATE, "%Y-%m-%d") 
     if not filename:
         filename = enddate.strftime("one-account-%Y-%m-%d.html")
 
