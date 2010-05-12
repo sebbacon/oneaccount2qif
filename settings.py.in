@@ -1,4 +1,7 @@
 PASS = "yourpassword"
 NUM = "yourpassnumber"
 CODE = "yourglobalkeycode"
-STARTDATE = "01/10/2008"
+DEFAULT_STARTDATE = "2008-10-01"
+DEFAULT_INCOME = "Income:Uncategorised"
+DEFAULT_EXPENSES = "Expenses:Uncategorised"
+

@@ -1,10 +1,11 @@
-This is a script to scrape your one account data and convert it to QIF format, so you can actually do useful things with it.
+This is a script to scrape your one account data and convert it to QIF format, so you can actually do useful things with it.  And not have to wrestle with the crappy One Account web interface.
 
 I've not bothered making it nice yet.
 
-Right now:
+Right now, to get started:
 
  * install pyquery and mechanise
  * Copy settings.py.in to settings.py and edit.
- * Run ./oneaccount.py once to grab today's HTML 
- * Run it again to dump QIF format to stdout.
+ * Run ./oneaccount.py to parse dates from settings.DEFAULT_START_DATE to today
+ * The HTML scraped from the One Account is cached in the current directory
+ * Have a look at ./oneaccount.py --help for some options

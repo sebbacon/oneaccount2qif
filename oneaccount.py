@@ -1,8 +1,13 @@
+#!/usr/bin/env python
 from pyquery import PyQuery as pq 
 from mechanize import Browser
 from datetime import datetime
 import os
 
+from optparse import OptionParser
+from optparse import OptionValueError
+
+from categories import mapping
 from settings import *
 
 LOGIN_URL = "https://service.oneaccount.com/onlineV2/OSV2?event=login&pt=3&brandRef=1"
@@ -37,13 +42,11 @@ def fetch_transactions(startdate=None, enddate=None):
     if startdate and enddate:
         br['all'] = ["True"]
         br['periodoption'] = ["byDate"]
-        br['startdate'] = startdate
-        br['enddate'] = enddate
+        br['startdate'] = startdate.strftime("%d/%m/%Y")
+        br['enddate'] = enddate.strftime("%d/%m/%Y")
     br.submit()
     now = datetime.now()
-    f = open(now.strftime("one-account-%Y-%m-%d.html"), "w")
-    f.write(br.response().read())
-    f.close()
+    return br.response().read()
 
 def parse_transactions(data):
     print "!Account"
@@ -78,9 +81,15 @@ def parse_transactions(data):
             category = categorybits[2].strip().encode('ascii',
                                                       'ignore')
         else:
-            category = ""        
+            category = ""
         debit = cols[5].find('span').text.encode('ascii', 'ignore').replace(",","")
         credit = cols[6].find('span').text.encode('ascii', 'ignore').replace(",","")
+        category = mapping.get(category, '')
+        if not category:
+            if debit:
+                category = DEFAULT_EXPENSES
+            elif credit:
+                category = DEFAULT_INCOME
         ref = ""
         who = ""
         if txntype == "SWITCH POS":
@@ -143,11 +152,52 @@ def parse_transactions(data):
         print "L%s" % category
         print "^"
 
-now = datetime.now()
-enddate = now.strftime("%d/%m/%Y")
-filename = now.strftime("one-account-%Y-%m-%d.html")
-if os.path.exists(filename):
-    data = open(filename, "r").read()
+def date_parser(option, opt_str, value, parser):
+    try:
+        date = datetime.strptime(date, "%Y-%m-%d")
+        setattr(parser.values, option.dest, date)    
+    except ValueError:
+        raise OptionValueError("Invalid time format")
+
+def parse_options():
+    parser = OptionParser()
+    parser.add_option("-f", "--file",
+                      dest="filename",
+                      help="Read transaction HTML from FILE",
+                      metavar="FILE")
+    parser.add_option("-s", "--start-date",
+                      dest="startdate",
+                      action="callback",
+                      callback=date_parser,
+                      help="List transactions after STARTDATE (YYYY-mm-dd)")
+    parser.add_option("-e", "--end-date",
+                      dest="enddate",
+                      action="callback",
+                      callback=date_parser,
+                      help="List transactions after ENDDATE (YYYY-mm-dd)")
+    return parser.parse_args()
+    
+if __name__ == "__main__":
+    options, args = parse_options()
+    now = datetime.now()
+    startdate = options.startdate
+    enddate = options.enddate
+    filename = options.filename
+    if filename and not os.path.exists(filename):
+        raise OptionValueError("File %s does not exist" % filename)
+    if not enddate:
+        enddate = now
+    if not startdate:
+        startdate = datetime.strptime(DEFAULT_STARTDATE, "%Y-%m-%d") 
+    if not filename:
+        filename = enddate.strftime("one-account-%Y-%m-%d.html")
+
+    if os.path.exists(filename):
+        data = open(filename, "r").read()
+    else:
+        data = fetch_transactions(startdate=startdate,
+                                  enddate=enddate)
+        f = open(filename, "w")
+        f.write(data)
+        f.close()
     parse_transactions(data)
-else:
-    fetch_transactions(startdate=STARTDATE, enddate=enddate)
