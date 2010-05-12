@@ -4,6 +4,7 @@ I've not bothered making it nice yet.
 
 Right now:
 
+ * install pyquery and mechanise
  * Copy settings.py.in to settings.py and edit.
  * Run ./oneaccount.py once to grab today's HTML 
  * Run it again to dump QIF format to stdout.
