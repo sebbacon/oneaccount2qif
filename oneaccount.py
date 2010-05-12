@@ -73,7 +73,12 @@ def parse_transactions(data):
         date = datetime.strptime(cols[0].find('span').text, "%d/%m/%Y")
         txntype = cols[1].find('span').text.strip()
         description = pq("span", cols[2]).html().encode('ascii', 'ignore')
-        category = cols[4].text.strip().encode('ascii', 'ignore')
+        categorybits = pq(cols[4]).html().split("\n")
+        if len(categorybits) > 2:
+            category = categorybits[2].strip().encode('ascii',
+                                                      'ignore')
+        else:
+            category = ""        
         debit = cols[5].find('span').text.encode('ascii', 'ignore').replace(",","")
         credit = cols[6].find('span').text.encode('ascii', 'ignore').replace(",","")
         ref = ""
@@ -135,6 +140,7 @@ def parse_transactions(data):
         print "M%s: %s" % (txntype, ref)
         print "N%s" % txnid
         print "P%s" % who
+        print "L%s" % category
         print "^"
 
 now = datetime.now()
