@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 import glob
 import sys
+import re
 
 from optparse import OptionParser
 from optparse import OptionValueError
@@ -72,7 +73,9 @@ def parse_transactions(data, visa=False):
     
     d = pq(data)
     rows = d('tr.content')
+    possible_errors = []
     for row in rows:
+        matched_txn = False
         d = pq(row)
         cols = d('td')
         if cols[0].attrib.has_key('colspan'):
@@ -80,25 +83,43 @@ def parse_transactions(data, visa=False):
             break        
         txnid = cols[3].find('input')
         txntype = cols[1].find('span').text
-        if txntype == "VISA PAYMENT":
+        if txntype in ["VISA PAYMENT",]:
             txnid = ""            
-        elif txnid is None:
+        elif txnid is not None:
+            txnid = txnid.attrib['value']
+        if txnid is None:
+            # may be a 'matched' transaction
+            redlink = cols[4].find('a')            
+            if redlink is not None and \
+                   redlink.attrib['class'] == "redlink":
+                matched_txn = True
+                idmatch = re.match(r'.*txnSeq=([^"]+).*',
+                                   redlink.attrib['href'])
+                if idmatch:
+                    txnid = idmatch.groups()[0]
+        if txnid is None:
             # not yet cleared
             continue
-        else:
-            txnid = txnid.attrib['value']
         date = datetime.strptime(cols[0].find('span').text, "%d/%m/%Y")
         txntype = cols[1].find('span').text.strip()
-        description = pq("span", cols[2]).html().encode('ascii', 'ignore')
-        categorybits = pq(cols[4]).html().split("\n")
-        if len(categorybits) > 2:
-            category = categorybits[2].strip().encode('ascii',
-                                                      'ignore')
+        description = pq("span", cols[2]).html().encode('ascii',
+                                                        'ignore')
+        if matched_txn:
+            matched_category = pq("a.redlink", cols[4])[0].text
+            category = re.match(r"Matched \((.*)\)",
+                                matched_category).groups()[0]
         else:
-            category = ""
-        debit = cols[5].find('span').text.encode('ascii', 'ignore').replace(",","")
-        credit = cols[6].find('span').text.encode('ascii', 'ignore').replace(",","")
-        category = mapping.get(category, '')
+            categorybits = pq(cols[4]).html().split("\n")
+            if len(categorybits) > 2:
+                category = categorybits[2].strip().encode('ascii',
+                                                          'ignore')
+            else:
+                category = ""
+        
+        debit = cols[5].find('span').text\
+                .encode('ascii', 'ignore').replace(",","")
+        credit = cols[6].find('span').text\
+                 .encode('ascii', 'ignore').replace(",","")
         ref = ""
         who = ""
         if txntype == "SWITCH POS":
@@ -130,8 +151,11 @@ def parse_transactions(data, visa=False):
             ref = description.split("<br/>")[0]
         elif txntype == "VISA":            
             parts = description.split("<br/>")
-            who = parts[1]
+            whoparts = [x.strip() for x in parts[1].split("   ") if x.strip()]
             ref = parts[0]
+            who = whoparts[0]
+            if len(whoparts) > 1:
+                ref += ": " + " ".join(whoparts[1:])
             # we treat a visa transation as a credit to a
             # liability account
             _ = credit
@@ -155,14 +179,25 @@ def parse_transactions(data, visa=False):
             txntype = description
             who = ""
             ref = description
+        elif txntype == "VISA CASH":
+            parts = description.split("<br/>")
+            whoparts = [x.strip() for x in parts[1].split("   ") if x.strip()]
+            ref = parts[0]
+            who = whoparts[0]
+            if len(whoparts) > 1:
+                ref += ": " + " ".join(whoparts[1:])
+        elif txntype == "DIRECT BANKING":
+            parts = description.split("<br/>")
+            who = parts[0]
+            ref = parts[1]
         else:
-            print "!!! Error parsing:", txntype, who, txnid
-            sys.exit(1)
-        if not category:
-            category = guess_category(txntype,
-                                      description,
-                                      credit=credit,
-                                      debit=debit)
+            ref = "[UNKNOWN]: " + description
+            possible_errors.append(txnid)
+        category = guess_category(category,
+                                  txntype,
+                                  description,
+                                  credit=credit,
+                                  debit=debit)
         ref = ref.encode('ascii', 'ignore')
         print date.strftime("D%m/%d/%Y")
         if credit:
@@ -174,6 +209,10 @@ def parse_transactions(data, visa=False):
         print "P%s" % who
         print "L%s" % category
         print "^"
+    if possible_errors:
+        sys.stderr.write("!! Had some troubling parsing:\n")
+    for e in possible_errors:
+        sys.stderr.write("%s\n" % e)
 
 def date_parser(option, opt_str, value, parser):
     if not value:

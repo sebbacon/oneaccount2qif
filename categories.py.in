@@ -9,18 +9,24 @@ mapping = {'Charity':'Expenses:Charity',
 'Groceries':'Expenses:Home:Groceries',}
 
 # edit this function to guess categories based on other metadata
-def guess_category(txntype,
+def guess_category(category,
+                   txntype,
                    description,
                    credit=None,
                    debit=None):
-    if debit and "SWITCH ATM" in description:
+    if credit and txntype == "VISA":
+        category = 'Liabilities:Credit cards:VISA'
+    elif txntype == "INTEREST":
+        category = "Mortgage interest"
+    elif debit and "SWITCH ATM" in description:
         category = 'Expenses:Cash (unknown)'
     elif txntype == "VISA PAYMENT":
         category = 'Liabilities:Credit cards:VISA'
-    elif credit and txntype == "VISA":
-        category = 'Liabilities:Credit cards:VISA'
-    elif debit:
-        category = settings.DEFAULT_EXPENSES
-    elif credit:
-        category = settings.DEFAULT_INCOME        
+    elif category:
+        category = mapping.get(category, '')
+    if not category:
+        if debit:
+            category = settings.DEFAULT_EXPENSES
+        elif credit:
+            category = settings.DEFAULT_INCOME        
     return category
