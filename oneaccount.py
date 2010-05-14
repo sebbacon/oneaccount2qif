@@ -179,7 +179,7 @@ def date_parser(option, opt_str, value, parser):
     if not value:
         return
     try:
-        date = datetime.strptime("%Y-%m-%d", value) 
+        date = datetime.strptime(value, "%Y-%m-%d") 
         setattr(parser.values, option.dest, date)    
     except ValueError:
         raise OptionValueError("Invalid time format: %s" % sys.exc_info()[1])
@@ -199,12 +199,14 @@ def parse_options():
     parser.add_option("-s", "--start-date",
                       dest="startdate",
                       action="callback",
+                      type="str",
                       callback=date_parser,
                       help="List transactions after STARTDATE (YYYY-mm-dd)")
     parser.add_option("-e", "--end-date",
                       dest="enddate",
                       action="callback",
                       callback=date_parser,
+                      type="str",
                       help="List transactions after ENDDATE (YYYY-mm-dd)")
     return parser.parse_args()
     
