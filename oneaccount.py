@@ -4,17 +4,19 @@ from mechanize import Browser
 from datetime import datetime
 import os
 import glob
+import sys
 
 from optparse import OptionParser
 from optparse import OptionValueError
 
 from categories import mapping
-from settings import *
+from categories import guess_category
+import settings
 
 LOGIN_URL = "https://service.oneaccount.com/onlineV2/OSV2?event=login&pt=3&brandRef=1"
 
 FILTER = "https://service.oneaccount.com/onlineV2/OSV2?event=showFilter"
-def fetch_transactions(startdate=None, enddate=None):
+def fetch_transactions(startdate=None, enddate=None, visa=False):
     br = Browser()
     br.addheaders = [('User-agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
     br.set_handle_equiv(True)
@@ -31,34 +33,45 @@ def fetch_transactions(startdate=None, enddate=None):
     num1 = int(labels[5].text.strip())
     num2 = int(labels[6].text.strip())
     br.select_form(nr=0)
-    br['globalKeyCode'] = CODE
-    br['password1'] = PASS[char1-1:char1]
-    br['password2'] = PASS[char2-1:char2]
-    br['passcode1'] = NUM[num1-1:num1]
-    br['passcode2'] = NUM[num2-1:num2]
+    br['globalKeyCode'] = settings.CODE
+    br['password1'] = settings.PASS[char1-1:char1]
+    br['password2'] = settings.PASS[char2-1:char2]
+    br['passcode1'] = settings.NUM[num1-1:num1]
+    br['passcode2'] = settings.NUM[num2-1:num2]
     br.submit()
 
     br.open(FILTER)
     br.select_form(nr=0)
-    if startdate and enddate:
+    br['periodoption'] = ["byDate"]
+    br['startdate'] = startdate.strftime("%d/%m/%Y")
+    br['enddate'] = enddate.strftime("%d/%m/%Y")
+    if visa:
+        br['visa'] = ["True"]
+        br['all'] = False
+    else:
         br['all'] = ["True"]
-        br['periodoption'] = ["byDate"]
-        br['startdate'] = startdate.strftime("%d/%m/%Y")
-        br['enddate'] = enddate.strftime("%d/%m/%Y")
     br.submit()
     now = datetime.now()
     return br.response().read()
 
-def parse_transactions(data):
-    print "!Account"
-    print "NOne account"
-    print "TBank"
-    print "^"
-    print "!Type:Bank"
-    print "NOne account"
+def parse_transactions(data, visa=False):
+    if visa:
+        print "!Account"
+        print "NVISA"
+        print "TCCard"
+        print "^"
+        print "!Type:CCard"
+        print "NVISA"        
+    else:
+        print "!Account"
+        print "NOne account"
+        print "TBank"
+        print "^"
+        print "!Type:Bank"
+        print "NOne account"
     
     d = pq(data)
-    rows = d('tr.content') # or something
+    rows = d('tr.content')
     for row in rows:
         d = pq(row)
         cols = d('td')
@@ -86,11 +99,6 @@ def parse_transactions(data):
         debit = cols[5].find('span').text.encode('ascii', 'ignore').replace(",","")
         credit = cols[6].find('span').text.encode('ascii', 'ignore').replace(",","")
         category = mapping.get(category, '')
-        if not category:
-            if debit:
-                category = DEFAULT_EXPENSES
-            elif credit:
-                category = DEFAULT_INCOME
         ref = ""
         who = ""
         if txntype == "SWITCH POS":
@@ -112,6 +120,7 @@ def parse_transactions(data):
         elif txntype == "INTEREST":
             who = "ONE ACCOUNT"
             ref = description
+            category = "Mortgage interest"
         elif txntype == "SWITCH ATM":
             who = description
         elif txntype == "DIRECT DEBIT":
@@ -119,6 +128,15 @@ def parse_transactions(data):
         elif txntype == "VISA PAYMENT":
             who = "VISA"
             ref = description.split("<br/>")[0]
+        elif txntype == "VISA":            
+            parts = description.split("<br/>")
+            who = parts[1]
+            ref = parts[0]
+            # we treat a visa transation as a credit to a
+            # liability account
+            _ = credit
+            credit = debit
+            debit = _
         elif txntype == "CHEQUE":
             who = ""
             ref = description
@@ -138,9 +156,13 @@ def parse_transactions(data):
             who = ""
             ref = description
         else:
-            import sys
-            print txntype, "!!!!!!!!!!!!!!!", who, txnid
+            print "!!! Error parsing:", txntype, who, txnid
             sys.exit(1)
+        if not category:
+            category = guess_category(txntype,
+                                      description,
+                                      credit=credit,
+                                      debit=debit)
         ref = ref.encode('ascii', 'ignore')
         print date.strftime("D%m/%d/%Y")
         if credit:
@@ -164,6 +186,12 @@ def date_parser(option, opt_str, value, parser):
 
 def parse_options():
     parser = OptionParser()
+    parser.set_defaults(accounttype="checking")
+    parser.add_option("-t", "--type",
+                      dest="accounttype",
+                      help=("Get data for account TYPE "
+                            "('visa' or 'checking' [default])"),
+                      metavar="TYPE")
     parser.add_option("-f", "--file",
                       dest="filename",
                       help="Read transaction HTML from FILE",
@@ -197,15 +225,22 @@ if __name__ == "__main__":
             latest = files[0]
             startdate = datetime.strptime(latest, "./one-account-%Y-%m-%d.html") 
         else:        
-            startdate = datetime.strptime(DEFAULT_STARTDATE, "%Y-%m-%d") 
+            startdate = datetime.strptime(settings.DEFAULT_STARTDATE,
+                                          "%Y-%m-%d") 
     if not filename:
         filename = enddate.strftime("one-account-%Y-%m-%d.html")
-
+    if options.accounttype == "visa":
+        filename += ".visa"
     if os.path.exists(filename):
         data = open(filename, "r").read()
     else:
-        data = fetch_transactions(startdate=startdate,
-                                  enddate=enddate)
+        if options.accounttype == "visa":
+            data = fetch_transactions(startdate=startdate,
+                                      enddate=enddate,
+                                      visa=True)
+        else:
+            data = fetch_transactions(startdate=startdate,
+                                      enddate=enddate)
         f = open(filename, "w")
         f.write(data)
         f.close()
