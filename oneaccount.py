@@ -154,11 +154,13 @@ def parse_transactions(data):
         print "^"
 
 def date_parser(option, opt_str, value, parser):
+    if not value:
+        return
     try:
-        date = datetime.strptime(date, "%Y-%m-%d")
+        date = datetime.strptime("%Y-%m-%d", value) 
         setattr(parser.values, option.dest, date)    
     except ValueError:
-        raise OptionValueError("Invalid time format")
+        raise OptionValueError("Invalid time format: %s" % sys.exc_info()[1])
 
 def parse_options():
     parser = OptionParser()
