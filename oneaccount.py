@@ -263,11 +263,10 @@ if __name__ == "__main__":
         files = glob.glob("./one-account-*.html")
         if files:
             files.sort()
-            latest = files[0]
+            latest = files[-1]
             startdate = datetime.strptime(latest, "./one-account-%Y-%m-%d.html") 
         else:        
             startdate = datetime.strptime(settings.DEFAULT_STARTDATE,
-                                          "%Y-%m-%d") 
                                           "%Y-%m-%d")
     if verbose:
         print "startdate: %s; enddate: %s" % (startdate, enddate)
