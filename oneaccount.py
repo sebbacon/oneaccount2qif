@@ -287,4 +287,7 @@ if __name__ == "__main__":
         f = open(filename, "w")
         f.write(data)
         f.close()
-    parse_transactions(data)
+    if options.accounttype == "visa":
+        parse_transactions(data, visa=True)
+    else:
+        parse_transactions(data)
