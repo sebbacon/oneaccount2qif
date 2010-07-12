@@ -10,6 +10,7 @@ mapping = {'Charity':'Expenses:Charity',
 
 # edit this function to guess categories based on other metadata
 def guess_category(category,
+                   who,
                    txntype,
                    description,
                    credit=None,

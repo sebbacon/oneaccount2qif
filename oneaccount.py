@@ -156,11 +156,6 @@ def parse_transactions(data, visa=False):
             who = whoparts[0]
             if len(whoparts) > 1:
                 ref += ": " + " ".join(whoparts[1:])
-            # we treat a visa transation as a credit to a
-            # liability account
-            _ = credit
-            credit = debit
-            debit = _
         elif txntype == "CHEQUE":
             who = ""
             ref = description
@@ -194,6 +189,7 @@ def parse_transactions(data, visa=False):
             ref = "[UNKNOWN]: " + description
             possible_errors.append(txnid)
         category = guess_category(category,
+                                  who,
                                   txntype,
                                   description,
                                   credit=credit,
