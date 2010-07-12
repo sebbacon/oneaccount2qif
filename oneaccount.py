@@ -222,6 +222,9 @@ def date_parser(option, opt_str, value, parser):
 def parse_options():
     parser = OptionParser()
     parser.set_defaults(accounttype="checking")
+    parser.add_option("-v", "--verbose",
+                      dest="verbose",
+                      action="store_true")
     parser.add_option("-t", "--type",
                       dest="accounttype",
                       help=("Get data for account TYPE "
@@ -251,6 +254,7 @@ if __name__ == "__main__":
     startdate = options.startdate
     enddate = options.enddate
     filename = options.filename
+    verbose = options.verbose
     if filename and not os.path.exists(filename):
         raise OptionValueError("File %s does not exist" % filename)
     if not enddate:
@@ -264,6 +268,9 @@ if __name__ == "__main__":
         else:        
             startdate = datetime.strptime(settings.DEFAULT_STARTDATE,
                                           "%Y-%m-%d") 
+                                          "%Y-%m-%d")
+    if verbose:
+        print "startdate: %s; enddate: %s" % (startdate, enddate)
     if not filename:
         filename = enddate.strftime("one-account-%Y-%m-%d.html")
     if options.accounttype == "visa":
