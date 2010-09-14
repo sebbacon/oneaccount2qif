@@ -122,7 +122,7 @@ def parse_transactions(data, visa=False):
                  .encode('ascii', 'ignore').replace(",","")
         ref = ""
         who = ""
-        if txntype == "SWITCH POS":
+        if txntype in ["SWITCH POS", "DEBIT POS"]:
             ref, who = description.split("<br/>")
         elif txntype == "BACS CREDIT" or txntype == "CHAPS":
             parts = description.split("<br/>")
@@ -142,7 +142,7 @@ def parse_transactions(data, visa=False):
             who = "ONE ACCOUNT"
             ref = description
             category = "Mortgage interest"
-        elif txntype == "SWITCH ATM":
+        elif txntype in ["SWITCH ATM", "DEBIT ATM"]:
             who = description
         elif txntype == "DIRECT DEBIT":
             who = description
