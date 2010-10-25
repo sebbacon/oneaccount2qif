@@ -83,7 +83,7 @@ def parse_transactions(data, visa=False):
             break        
         txnid = cols[3].find('input')
         txntype = cols[1].find('span').text
-        if txntype in ["VISA PAYMENT",]:
+        if txntype in ["VISA PAYMENT","CHARGECARD PAYT"]:
             txnid = ""            
         elif txnid is not None:
             txnid = txnid.attrib['value']
@@ -156,6 +156,10 @@ def parse_transactions(data, visa=False):
             who = whoparts[0]
             if len(whoparts) > 1:
                 ref += ": " + " ".join(whoparts[1:])
+        elif txntype == "CHARGECARD PAYT":
+            parts = description.split("<br/>")
+            ref = parts[0]
+            who = parts[1]
         elif txntype == "CHEQUE":
             who = ""
             ref = description
