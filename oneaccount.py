@@ -52,10 +52,12 @@ def fetch_transactions(startdate=None, enddate=None, visa=False):
     else:
         br['all'] = ["True"]
     br.submit()
-    now = datetime.now()
     return br.response().read()
 
-def parse_transactions(data, visa=False):
+def parse_transactions(data,
+                       visa=False,
+                       startdate=None,
+                       enddate=None):
     if visa:
         print "!Account"
         print "NVISA"
@@ -100,7 +102,14 @@ def parse_transactions(data, visa=False):
         if txnid is None:
             # not yet cleared
             continue
-        date = datetime.strptime(cols[0].find('span').text, "%d/%m/%Y")
+        date = datetime.strptime(cols[0].find('span').text,
+    "%d/%m/%Y")
+        if startdate:
+            if date < startdate:
+                continue
+        if enddate:
+            if date > enddate:
+                continue        
         txntype = cols[1].find('span').text.strip()
         description = pq("span", cols[2]).html().encode('ascii',
                                                         'ignore')
@@ -190,7 +199,7 @@ def parse_transactions(data, visa=False):
             who = parts[0]
             ref = parts[1]
         else:
-            ref = "[UNKNOWN]: " + description
+            ref = "[UNKNOWN %s]: %s" % (txntype, description)
             possible_errors.append(txnid)
         category = guess_category(category,
                                   who,
@@ -292,6 +301,11 @@ if __name__ == "__main__":
         f.write(data)
         f.close()
     if options.accounttype == "visa":
-        parse_transactions(data, visa=True)
+        parse_transactions(data,
+                           visa=True,
+                           startdate=startdate,
+                           enddate=enddate)
     else:
-        parse_transactions(data)
+        parse_transactions(data,
+                           startdate=startdate,
+                           enddate=enddate)
