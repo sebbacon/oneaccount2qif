@@ -35,10 +35,10 @@ def fetch_transactions(startdate=None, enddate=None, visa=False):
     num2 = int(labels[6].text.strip())
     br.select_form(nr=0)
     br['globalKeyCode'] = settings.CODE
-    br['password1'] = settings.PASS[char1-1:char1]
-    br['password2'] = settings.PASS[char2-1:char2]
-    br['passcode1'] = settings.NUM[num1-1:num1]
-    br['passcode2'] = settings.NUM[num2-1:num2]
+    br['ctl001password1'] = settings.PASS[char1-1:char1]
+    br['ctl001password2'] = settings.PASS[char2-1:char2]
+    br['ctl001passcode1'] = settings.NUM[num1-1:num1]
+    br['ctl001passcode2'] = settings.NUM[num2-1:num2]
     br.submit()
 
     br.open(FILTER)
@@ -48,11 +48,12 @@ def fetch_transactions(startdate=None, enddate=None, visa=False):
     br['enddate'] = enddate.strftime("%d/%m/%Y")
     if visa:
         br['visa'] = ["True"]
-        br['all'] = False
+        br['all'] = False 
     else:
         br['all'] = ["True"]
     br.submit()
-    return br.response().read()
+    result = br.response().read()
+    return result
 
 def parse_transactions(data,
                        visa=False,
@@ -72,7 +73,6 @@ def parse_transactions(data,
         print "^"
         print "!Type:Bank"
         print "NOne account"
-    
     d = pq(data)
     rows = d('tr.content')
     possible_errors = []
@@ -106,7 +106,7 @@ def parse_transactions(data,
     "%d/%m/%Y")
         if startdate:
             if date < startdate:
-                continue
+                pass
         if enddate:
             if date > enddate:
                 continue        
@@ -273,11 +273,19 @@ if __name__ == "__main__":
     if not enddate:
         enddate = now
     if not startdate:
-        files = glob.glob("./one-account-*.html")
+        if options.accounttype == "visa":
+            files = glob.glob("./one-account-*.html.visa")
+        else:
+            files = glob.glob("./one-account-*.html")
         if files:
             files.sort()
             latest = files[-1]
-            startdate = datetime.strptime(latest, "./one-account-%Y-%m-%d.html") 
+            if options.accounttype == "visa":
+                startdate = datetime.strptime(
+                    latest, "./one-account-%Y-%m-%d.html.visa") 
+            else:
+                startdate = datetime.strptime(
+                    latest, "./one-account-%Y-%m-%d.html") 
         else:        
             startdate = datetime.strptime(settings.DEFAULT_STARTDATE,
                                           "%Y-%m-%d")
