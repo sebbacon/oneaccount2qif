@@ -1,3 +1,5 @@
+Use Royal Bank of Scotland (RBS)'s "One Account"?  Need to access the data through something other than it's stupid web interface?
+
 This is a script to scrape your one account data and convert it to QIF format, so you can actually do useful things with it.  And not have to wrestle with the crappy One Account web interface.
 
 I've not bothered making it nice yet.
