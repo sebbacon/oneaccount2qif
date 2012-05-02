@@ -198,6 +198,9 @@ def parse_transactions(data,
             parts = description.split("<br/>")
             who = parts[0]
             ref = parts[1]
+        elif txntype == "PAY IN":
+            who = ""
+            ref = description
         else:
             ref = "[UNKNOWN %s]: %s" % (txntype, description)
             possible_errors.append(txnid)
