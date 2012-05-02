@@ -33,7 +33,7 @@ def fetch_transactions(startdate=None, enddate=None, visa=False):
     char2 = int(labels[3].text.strip())
     num1 = int(labels[5].text.strip())
     num2 = int(labels[6].text.strip())
-    br.select_form(nr=0)
+    br.form = list(br.forms())[0]
     br['globalKeyCode'] = settings.CODE
     br['ctl001password1'] = settings.PASS[char1-1:char1]
     br['ctl001password2'] = settings.PASS[char2-1:char2]
@@ -42,7 +42,7 @@ def fetch_transactions(startdate=None, enddate=None, visa=False):
     br.submit()
 
     br.open(FILTER)
-    br.select_form(nr=0)
+    br.form = list(br.forms())[0]
     br['periodoption'] = ["byDate"]
     br['startdate'] = startdate.strftime("%d/%m/%Y")
     br['enddate'] = enddate.strftime("%d/%m/%Y")
